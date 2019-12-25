@@ -20,4 +20,6 @@ export const dateIsBetween = (start: Date, candidate: Date, end: Date): boolean 
 }
 
 export const timeIsBetween = (start: Date, candidate: Date, end: Date) =>
-  candidate.getHours() >= start.getHours() && candidate.getHours() <= end.getHours()
+  candidate.getTime() >= start.getTime() && candidate.getTime() <= end.getTime()
+  
+  
