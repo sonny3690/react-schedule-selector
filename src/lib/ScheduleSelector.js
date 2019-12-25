@@ -44,20 +44,25 @@ const Column = styled.div`
 export const GridCell = styled.div`
   margin: ${props => props.margin}px;
   touch-action: none;
+  background: red;
 `
 
 const DateCell = styled.div`
   width: 100%;
-  height: 25px;
+  height: 30px;
+  margin: 0px;
   background-color: ${props => (props.selected ? props.selectedColor : props.unselectedColor)};
 
-  &:hover {
-    background-color: ${props => props.hoveredColor};
-  }
+  // &:hover {
+  //   background-color: ${props => props.hoveredColor};
+  // }
 `
 
 const DateLabel = styled(Subtitle)`
-  height: 30px;
+  
+  
+  color: ${props=>(props.dayOfWeek? 'black' : 'inherit')}
+
   @media (max-width: 699px) {
     font-size: 12px;
   }
@@ -68,7 +73,7 @@ const TimeLabelCell = styled.div`
   display: block;
   width: 100%;
   height: 25px;
-  margin: 3px 0;
+  margin: 0px 0px;
   text-align: center;
   display: flex;
   justify-content: center;
@@ -309,6 +314,8 @@ export default class ScheduleSelector extends React.Component<PropsType, StateTy
     <Column key={dayOfTimes[0]} margin={this.props.margin}>
       <GridCell margin={this.props.margin}>
         <DateLabel>{formatDate(dayOfTimes[0], this.props.dateFormat)}</DateLabel>
+        <DateLabel dayOfWeek>{formatDate(dayOfTimes[1], 'ddd')}</DateLabel>
+        
       </GridCell>
       {dayOfTimes.map(time => this.renderDateCellWrapper(time))}
     </Column>

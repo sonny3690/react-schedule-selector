@@ -74,11 +74,13 @@ class App extends React.Component<{}, StateType> {
         </IntroText>
         <ScheduleSelectorCard>
           <ScheduleSelector
+            linear
             minTime={12}
             maxTime={20}
             numDays={7}
             selection={this.state.schedule}
             onChange={this.handleDateChange}
+            dateFormat={'MMM D'}
           />
         </ScheduleSelectorCard>
         <Links>
