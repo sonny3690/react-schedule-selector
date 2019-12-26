@@ -77,7 +77,7 @@ class App extends React.Component<{}, StateType> {
             linear
             minTime={12}
             maxTime={20}
-            numDays={7}
+            numDays={20}
             selection={this.state.schedule}
             onChange={this.handleDateChange}
             dateFormat={'MMM D'}
