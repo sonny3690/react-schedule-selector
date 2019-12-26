@@ -22,4 +22,6 @@ export const dateIsBetween = (start: Date, candidate: Date, end: Date): boolean 
 export const timeIsBetween = (start: Date, candidate: Date, end: Date) =>
   candidate.getTime() >= start.getTime() && candidate.getTime() <= end.getTime()
   
-  
+export const stringify = (x,y) => `${x},${y}`
+export const unstringify = s => s.split(',').map(x=>parseInt(x))
+export const between = (a,b,c) => c <= Math.max(a,b) && c >= Math.min(a,b)

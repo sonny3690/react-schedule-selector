@@ -14,6 +14,8 @@ import formatDate from 'date-fns/format'
 import { Text, Subtitle } from './typography'
 import colors from './colors'
 import selectionSchemes from './selection-schemes'
+import {stringify, unstringify, between} from './date-utils'
+import { isThisWeek } from 'date-fns';
 
 const formatHour = (hour: number): string => {
   const h = hour === 0 || hour === 12 || hour === 24 ? 12 : hour % 12
@@ -122,15 +124,6 @@ type PropsType = {
   renderDateCell?: (Date, boolean, (HTMLElement) => void) => React.Node
 }
 
-type StateType = {
-  // In the case that a user is drag-selecting, we don't want to call this.props.onChange() until they have completed
-  // the drag-select. selectionDraft serves as a temporary copy during drag-selects.
-  selectionDraft: Array<Date>,
-  selectionType: ?SelectionType,
-  selectionStart: ?Date,
-  isTouchDragging: boolean
-}
-
 export const preventScroll = (e: TouchEvent) => {
   e.preventDefault()
 }
@@ -190,25 +183,57 @@ constructor(props: PropsType) {
   }
 
   this.state = {
-    isTouchDragging: false,
-    updateToggle: false,
     mouseX: 0,
     mouseY: 0,
     startCoord: [-1, -1],
     endCoord: [-1, -1],
-    selected: selected
   }
-
-  this.mouseDown = false;
-  this.clickedCell = false;
-  this.shouldAdd = true;
 
 
   this.selectionSchemeHandlers = {
     linear: selectionSchemes.linear,
     square: selectionSchemes.square
   }
+
+  // true if adding false if deleting
+  this.addMode = false;
+  this.mouseDown = false;
+
+  this.selected = new Set();
+  this.highlighted = new Set();
+
 }
+
+
+startSelection = (dayIndex, timeIndex) => {
+  if (dayIndex < 0 || timeIndex < 0){
+    return;
+  }
+
+  this.mouseDown = true;
+
+  this.addMode = !this.selected.has(stringify(dayIndex, timeIndex));
+
+  this.setState({startCoord: [dayIndex, timeIndex]});
+}
+
+endSelection = () => {
+
+  for (let x = Math.min(this.state.startCoord[0], this.state.mouseX); x <= Math.max(this.state.startCoord[0], this.state.mouseX); x++){
+    for (let y = Math.min(this.state.startCoord[1], this.state.mouseY); y <= Math.max(this.state.startCoord[1], this.state.mouseY); y++){
+      
+      if (this.addMode){
+        this.selected.add(stringify(x,y))
+      } else {
+        this.selected.delete(stringify(x,y))
+      }
+    }
+  }
+  
+  this.setState({startCoord: [-1, -1]})
+  this.mouseDown = false;
+}
+
 
 
 // returns 
@@ -244,20 +269,28 @@ renderDateColumn = (dayIndex: number, dayOfTimes: Array<Date>) => {
         <DateLabel>{formatDate(dayOfTimes[0], this.props.dateFormat)}</DateLabel>
         <DateLabel dayOfWeek>{formatDate(dayOfTimes[1], 'ddd')}</DateLabel>
       </GridCell>
-      {dayOfTimes.map((i, time) => this.renderDateCellWrapper(time, dayIndex, index))}
+      {dayOfTimes.map((time, i) => this.renderDateCellWrapper(time, dayIndex, i))}
     </Column>
 
   )
 }
 
 
+shouldHighlight = s => {
+  
+  const [x,y] = unstringify(s);
+
+  const highlighted = (this.mouseDown && between(this.state.startCoord[0], this.state.mouseX, x) && between(this.state.startCoord[1], this.state.mouseY, y));
+  const selected = this.selected.has(s)
+  
+  return !this.mouseDown && selected || this.mouseDown && (this.addMode && (highlighted || selected)) || (!this.addMode && !highlighted && selected)
+}
+
+
 
 renderDateCellWrapper = (time: Date, dayIndex, timeIndex): React.Element<*> => {
-  // const startHandler = () => {
-  //   this.handleSelectionStartEvent(time)
-  // }
 
-  // const selected = Boolean(this.state.selectionDraft.find(a => isSameMinute(a, time)))
+  const stringified = stringify(dayIndex, timeIndex);
 
   return (
     <GridCell
@@ -265,20 +298,14 @@ renderDateCellWrapper = (time: Date, dayIndex, timeIndex): React.Element<*> => {
       role="presentation"
       margin={0}
       key={time.toISOString()}
-      onMouseEnter={() => {
-        if (this.mouseDown) {
-          this.updateTimes(time)
-        }
-      }}
       // Mouse handlers
-      onMouseDown={() => this.updateTimes(time, true)}
-
+      onMouseDown={() => this.startSelection(dayIndex, timeIndex)}
     >
       <DateCell
-        selected={this.state.selected[dayIndex][timeIndex]}
+        selected={this.shouldHighlight(stringified)}
         // innerRef={refSetter}
         dateCellHeight={this.props.dateCellHeight}
-        quarter={k}
+        quarter={1}
         selectedColor={this.props.selectedColor}
         unselectedColor={this.props.unselectedColor}
         hoveredColor={this.props.hoveredColor}
@@ -294,9 +321,7 @@ _onMouseMove(e) {
   const mouseX = e.nativeEvent.pageX - this.gridRef.offsetLeft - 30;
   const mouseY = e.nativeEvent.pageY - this.gridRef.offsetTop - 60;
 
-  const [cellColIndex, cellRowIndex] = [Math.floor(mouseX / this.props.dateCellWidth), Math.floor (mouseY / this.props.dateCellHeight)];
-
-
+  const [cellColIndex, cellRowIndex] = [Math.floor(mouseX / this.props.dateCellWidth), Math.floor(mouseY / this.props.dateCellHeight)];
   this.setState({ mouseX: cellColIndex, mouseY: cellRowIndex});
 }
 
@@ -308,7 +333,9 @@ render(): React.Element <*> {
       onMouseUp = {()=> { this.mouseDown = false }}>
 
   <Grid innerRef={el => { this.gridRef = el }}
-    onMouseMove={this._onMouseMove.bind(this)} >
+    onMouseMove={this._onMouseMove.bind(this)}
+    onMouseUp={() => this.endSelection()}
+    >
     {this.renderTimeLabels()}
     {this.dates.map((e, i) => this.renderDateColumn(i, e))}
   </Grid >
