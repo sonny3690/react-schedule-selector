@@ -1,7 +1,7 @@
 'use strict';
 
 exports.__esModule = true;
-exports.timeIsBetween = exports.dateIsBetween = exports.dateHourIsBetween = undefined;
+exports.between = exports.unstringify = exports.stringify = exports.timeIsBetween = exports.dateIsBetween = exports.dateHourIsBetween = undefined;
 
 var _start_of_day = require('date-fns/start_of_day');
 
@@ -27,5 +27,17 @@ var dateIsBetween = exports.dateIsBetween = function dateIsBetween(start, candid
 };
 
 var timeIsBetween = exports.timeIsBetween = function timeIsBetween(start, candidate, end) {
-  return candidate.getHours() >= start.getHours() && candidate.getHours() <= end.getHours();
+  return candidate.getTime() >= start.getTime() && candidate.getTime() <= end.getTime();
+};
+
+var stringify = exports.stringify = function stringify(x, y) {
+  return x + ',' + y;
+};
+var unstringify = exports.unstringify = function unstringify(s) {
+  return s.split(',').map(function (x) {
+    return parseInt(x);
+  });
+};
+var between = exports.between = function between(a, b, c) {
+  return c <= Math.max(a, b) && c >= Math.min(a, b);
 };

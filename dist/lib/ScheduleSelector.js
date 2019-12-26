@@ -41,6 +41,10 @@ var _selectionSchemes = require('./selection-schemes');
 
 var _selectionSchemes2 = _interopRequireDefault(_selectionSchemes);
 
+var _dateUtils = require('./date-utils');
+
+var _dateFns = require('date-fns');
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
@@ -73,33 +77,67 @@ var Grid = (0, _styledComponents2.default)('div').withConfig({
 var Column = (0, _styledComponents2.default)('div').withConfig({
   displayName: 'ScheduleSelector__Column',
   componentId: 'sc-10qe3m2-2'
-})(['display:flex;flex-direction:column;justify-content:space-evenly;flex-grow:1;']);
+})(['display:flex;flex-direction:column;width:', ';'], function (props) {
+  return props.dateCellWidth + 'px';
+});
 
 var GridCell = exports.GridCell = (0, _styledComponents2.default)('div').withConfig({
   displayName: 'ScheduleSelector__GridCell',
   componentId: 'sc-10qe3m2-3'
-})(['margin:', 'px;touch-action:none;'], function (props) {
+})(['margin:', 'px;touch-action:none;width:', ';'], function (props) {
   return props.margin;
+}, function (props) {
+  return props.dateCellWidth + 'px';
 });
+
+var handleQuarterCellBorder = function handleQuarterCellBorder(quarter) {
+
+  switch (quarter) {
+    case 0:
+      return "border-style: solid solid none none";
+    case 1:
+      return "border-style: none solid dashed solid";
+    case 2:
+      return "border-style: none solid none none";
+    case 3:
+      return "border-style: none solid solid none";
+  }
+};
+
+var cellVal = function cellVal(val) {
+  return val + 'px';
+};
 
 var DateCell = (0, _styledComponents2.default)('div').withConfig({
   displayName: 'ScheduleSelector__DateCell',
   componentId: 'sc-10qe3m2-4'
-})(['width:100%;height:25px;background-color:', ';&:hover{background-color:', ';}'], function (props) {
-  return props.selected ? props.selectedColor : props.unselectedColor;
+})(['height:', ';width:', ';border-width:0.2px;', ';margin:0px 0px;background-color:', ';'], function (props) {
+  return props.dateCellHeight + 'px';
 }, function (props) {
-  return props.hoveredColor;
+  return props.dateCellWidth + 'px';
+}, function (_ref) {
+  var quarter = _ref.quarter;
+  return handleQuarterCellBorder(quarter);
+}, function (props) {
+  return props.selected ? props.selectedColor : props.unselectedColor;
 });
 
 var DateLabel = (0, _styledComponents2.default)(_typography.Subtitle).withConfig({
   displayName: 'ScheduleSelector__DateLabel',
   componentId: 'sc-10qe3m2-5'
-})(['height:30px;@media (max-width:699px){font-size:12px;}']);
+})(['color:', ';font-size:', ';margin:5px 0px;@media (max-width:699px){font-size:12px;}'], function (props) {
+  return props.dayOfWeek ? 'black' : '#00011F';
+}, function (props) {
+  return props.dayOfWeek ? '1.3rem' : '1rem';
+});
 
 var TimeLabelCell = (0, _styledComponents2.default)('div').withConfig({
   displayName: 'ScheduleSelector__TimeLabelCell',
   componentId: 'sc-10qe3m2-6'
-})(['position:relative;display:block;width:100%;height:25px;margin:3px 0;text-align:center;display:flex;justify-content:center;align-items:center;']);
+})(['position:relative;display:block;width:30px;height:', ';text-align:center;display:flex;justify-content:center;margin-right:3px;align-items:center;'], function (_ref2) {
+  var dateCellHeight = _ref2.dateCellHeight;
+  return dateCellHeight * 4 + 'px';
+});
 
 var TimeText = (0, _styledComponents2.default)(_typography.Text).withConfig({
   displayName: 'ScheduleSelector__TimeText',
@@ -119,284 +157,88 @@ var ScheduleSelector = function (_React$Component) {
     // Generate list of dates to render cells for
     var _this = _possibleConstructorReturn(this, _React$Component.call(this, props));
 
-    _this.renderTimeLabels = function () {
-      var labels = [React.createElement(DateLabel, { key: -1 })]; // Ensures time labels start at correct location
-      for (var t = _this.props.minTime; t <= _this.props.maxTime; t += 1) {
-        labels.push(React.createElement(
-          TimeLabelCell,
-          { key: t },
-          React.createElement(
-            TimeText,
-            null,
-            formatHour(t)
-          )
-        ));
-      }
-      return React.createElement(
-        Column,
-        { margin: _this.props.margin },
-        labels
-      );
-    };
-
-    _this.renderDateColumn = function (dayOfTimes) {
-      return React.createElement(
-        Column,
-        { key: dayOfTimes[0], margin: _this.props.margin },
-        React.createElement(
-          GridCell,
-          { margin: _this.props.margin },
-          React.createElement(
-            DateLabel,
-            null,
-            (0, _format2.default)(dayOfTimes[0], _this.props.dateFormat)
-          )
-        ),
-        dayOfTimes.map(function (time) {
-          return _this.renderDateCellWrapper(time);
-        })
-      );
-    };
-
-    _this.renderDateCellWrapper = function (time) {
-      var startHandler = function startHandler() {
-        _this.handleSelectionStartEvent(time);
-      };
-
-      var selected = Boolean(_this.state.selectionDraft.find(function (a) {
-        return (0, _is_same_minute2.default)(a, time);
-      }));
-
-      return React.createElement(
-        GridCell,
-        {
-          className: 'rgdp__grid-cell',
-          role: 'presentation',
-          margin: _this.props.margin,
-          key: time.toISOString()
-          // Mouse handlers
-          , onMouseDown: startHandler,
-          onMouseEnter: function onMouseEnter() {
-            _this.handleMouseEnterEvent(time);
-          },
-          onMouseUp: function onMouseUp() {
-            _this.handleMouseUpEvent(time);
-          }
-          // Touch handlers
-          // Since touch events fire on the event where the touch-drag started, there's no point in passing
-          // in the time parameter, instead these handlers will do their job using the default SyntheticEvent
-          // parameters
-          , onTouchStart: startHandler,
-          onTouchMove: _this.handleTouchMoveEvent,
-          onTouchEnd: _this.handleTouchEndEvent
-        },
-        _this.renderDateCell(time, selected)
-      );
-    };
-
-    _this.renderDateCell = function (time, selected) {
-      var refSetter = function refSetter(dateCell) {
-        _this.cellToDate.set(dateCell, time);
-      };
-      if (_this.props.renderDateCell) {
-        return _this.props.renderDateCell(time, selected, refSetter);
-      } else {
-        return React.createElement(DateCell, {
-          selected: selected,
-          innerRef: refSetter,
-          selectedColor: _this.props.selectedColor,
-          unselectedColor: _this.props.unselectedColor,
-          hoveredColor: _this.props.hoveredColor
-        });
-      }
-    };
+    _initialiseProps.call(_this);
 
     var startTime = (0, _start_of_day2.default)(props.startDate);
     _this.dates = [];
-    _this.cellToDate = new Map();
+
+    var selected = [];
+
     for (var d = 0; d < props.numDays; d += 1) {
       var currentDay = [];
+
       for (var h = props.minTime; h <= props.maxTime; h += 1) {
-        currentDay.push((0, _add_hours2.default)((0, _add_days2.default)(startTime, d), h));
+        for (var i = 0; i < 4; i++) {
+          var currentTime = (0, _add_hours2.default)((0, _add_days2.default)(startTime, d), h + 0.25 * i);
+          currentDay.push(currentTime);
+        }
       }
       _this.dates.push(currentDay);
     }
 
     _this.state = {
-      selectionDraft: [].concat(_this.props.selection), // copy it over
-      selectionType: null,
-      selectionStart: null,
-      isTouchDragging: false
+      mouseX: 0,
+      mouseY: 0,
+      startCoord: [-1, -1]
     };
 
     _this.selectionSchemeHandlers = {
       linear: _selectionSchemes2.default.linear,
       square: _selectionSchemes2.default.square
-    };
 
-    _this.endSelection = _this.endSelection.bind(_this);
-    _this.handleMouseUpEvent = _this.handleMouseUpEvent.bind(_this);
-    _this.handleMouseEnterEvent = _this.handleMouseEnterEvent.bind(_this);
-    _this.handleTouchMoveEvent = _this.handleTouchMoveEvent.bind(_this);
-    _this.handleTouchEndEvent = _this.handleTouchEndEvent.bind(_this);
-    _this.handleSelectionStartEvent = _this.handleSelectionStartEvent.bind(_this);
+      // true if adding false if deleting
+    };_this.addMode = false;
+    _this.mouseDown = false;
+
+    _this.selected = new Set();
+    _this.highlighted = new Set();
+
     return _this;
   }
 
-  ScheduleSelector.prototype.componentDidMount = function componentDidMount() {
-    // We need to add the endSelection event listener to the document itself in order
-    // to catch the cases where the users ends their mouse-click somewhere besides
-    // the date cells (in which case none of the DateCell's onMouseUp handlers would fire)
-    //
-    // This isn't necessary for touch events since the `touchend` event fires on
-    // the element where the touch/drag started so it's always caught.
-    document.addEventListener('mouseup', this.endSelection);
-
-    // Prevent page scrolling when user is dragging on the date cells
-    this.cellToDate.forEach(function (value, dateCell) {
-      if (dateCell && dateCell.addEventListener) {
-        dateCell.addEventListener('touchmove', preventScroll, { passive: false });
-      }
-    });
-  };
-
-  ScheduleSelector.prototype.componentWillUnmount = function componentWillUnmount() {
-    document.removeEventListener('mouseup', this.endSelection);
-    this.cellToDate.forEach(function (value, dateCell) {
-      if (dateCell && dateCell.removeEventListener) {
-        dateCell.removeEventListener('touchmove', preventScroll);
-      }
-    });
-  };
-
-  ScheduleSelector.prototype.componentWillReceiveProps = function componentWillReceiveProps(nextProps) {
-    this.setState({
-      selectionDraft: [].concat(nextProps.selection)
-    });
-  };
-
-  // Performs a lookup into this.cellToDate to retrieve the Date that corresponds to
-  // the cell where this touch event is right now. Note that this method will only work
-  // if the event is a `touchmove` event since it's the only one that has a `touches` list.
+  // returns 
 
 
-  ScheduleSelector.prototype.getTimeFromTouchEvent = function getTimeFromTouchEvent(event) {
-    var touches = event.touches;
+  ScheduleSelector.prototype._onMouseMove = function _onMouseMove(e) {
 
-    if (!touches || touches.length === 0) return null;
-    var _touches$ = touches[0],
-        clientX = _touches$.clientX,
-        clientY = _touches$.clientY;
+    var coords = this.coordToIndex(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
 
-    var targetElement = document.elementFromPoint(clientX, clientY);
-    var cellTime = this.cellToDate.get(targetElement);
-    return cellTime;
-  };
+    var mouseX = e.nativeEvent.pageX - this.gridRef.offsetLeft - this.props.offsetLeft;
+    var mouseY = e.nativeEvent.pageY - this.gridRef.offsetTop - this.props.offsetTop;
 
-  ScheduleSelector.prototype.endSelection = function endSelection() {
-    this.props.onChange(this.state.selectionDraft);
-    this.setState({
-      selectionType: null,
-      selectionStart: null
-    });
-  };
+    var _ref3 = [Math.floor(mouseX / this.props.dateCellWidth), Math.floor(mouseY / this.props.dateCellHeight)],
+        cellColIndex = _ref3[0],
+        cellRowIndex = _ref3[1];
 
-  // Given an ending Date, determines all the dates that should be selected in this draft
-
-
-  ScheduleSelector.prototype.updateAvailabilityDraft = function updateAvailabilityDraft(selectionEnd, callback) {
-    var _state = this.state,
-        selectionType = _state.selectionType,
-        selectionStart = _state.selectionStart;
-
-
-    if (selectionType === null || selectionStart === null) return;
-
-    var newSelection = [];
-    if (selectionStart && selectionEnd && selectionType) {
-      newSelection = this.selectionSchemeHandlers[this.props.selectionScheme](selectionStart, selectionEnd, this.dates);
-    }
-
-    var nextDraft = [].concat(this.props.selection);
-    if (selectionType === 'add') {
-      nextDraft = Array.from(new Set([].concat(nextDraft, newSelection)));
-    } else if (selectionType === 'remove') {
-      nextDraft = nextDraft.filter(function (a) {
-        return !newSelection.find(function (b) {
-          return (0, _is_same_minute2.default)(a, b);
-        });
-      });
-    }
-
-    this.setState({ selectionDraft: nextDraft }, callback);
-  };
-
-  // Isomorphic (mouse and touch) handler since starting a selection works the same way for both classes of user input
-
-
-  ScheduleSelector.prototype.handleSelectionStartEvent = function handleSelectionStartEvent(startTime) {
-    // Check if the startTime cell is selected/unselected to determine if this drag-select should
-    // add values or remove values
-    var timeSelected = this.props.selection.find(function (a) {
-      return (0, _is_same_minute2.default)(a, startTime);
-    });
-    this.setState({
-      selectionType: timeSelected ? 'remove' : 'add',
-      selectionStart: startTime
-    });
-  };
-
-  ScheduleSelector.prototype.handleMouseEnterEvent = function handleMouseEnterEvent(time) {
-    // Need to update selection draft on mouseup as well in order to catch the cases
-    // where the user just clicks on a single cell (because no mouseenter events fire
-    // in this scenario)
-    this.updateAvailabilityDraft(time);
-  };
-
-  ScheduleSelector.prototype.handleMouseUpEvent = function handleMouseUpEvent(time) {
-    this.updateAvailabilityDraft(time);
-    // Don't call this.endSelection() here because the document mouseup handler will do it
-  };
-
-  ScheduleSelector.prototype.handleTouchMoveEvent = function handleTouchMoveEvent(event) {
-    this.setState({ isTouchDragging: true });
-    var cellTime = this.getTimeFromTouchEvent(event);
-    if (cellTime) {
-      this.updateAvailabilityDraft(cellTime);
-    }
-  };
-
-  ScheduleSelector.prototype.handleTouchEndEvent = function handleTouchEndEvent() {
-    var _this2 = this;
-
-    if (!this.state.isTouchDragging) {
-      // Going down this branch means the user tapped but didn't drag -- which
-      // means the availability draft hasn't yet been updated (since
-      // handleTouchMoveEvent was never called) so we need to do it now
-      this.updateAvailabilityDraft(null, function () {
-        _this2.endSelection();
-      });
-    } else {
-      this.endSelection();
-    }
-    this.setState({ isTouchDragging: false });
+    this.setState({ mouseX: cellColIndex, mouseY: cellRowIndex });
   };
 
   ScheduleSelector.prototype.render = function render() {
-    var _this3 = this;
+    var _this2 = this;
 
     return React.createElement(
       Wrapper,
-      null,
+      {
+        onMouseDown: function onMouseDown() {
+          _this2.mouseDown = true;
+        },
+        onMouseUp: function onMouseUp() {
+          _this2.mouseDown = false;
+        } },
       React.createElement(
         Grid,
-        {
-          innerRef: function innerRef(el) {
-            _this3.gridRef = el;
+        { innerRef: function innerRef(el) {
+            _this2.gridRef = el;
+          },
+          onMouseMove: this._onMouseMove.bind(this),
+          onMouseUp: function onMouseUp() {
+            return _this2.endSelection();
           }
         },
         this.renderTimeLabels(),
-        this.dates.map(this.renderDateColumn)
+        this.dates.map(function (e, i) {
+          return _this2.renderDateColumn(i, e);
+        })
       )
     );
   };
@@ -412,10 +254,142 @@ ScheduleSelector.defaultProps = {
   maxTime: 23,
   startDate: new Date(),
   dateFormat: 'M/D',
-  margin: 3,
+  margin: 0,
   selectedColor: _colors2.default.blue,
   unselectedColor: _colors2.default.paleBlue,
   hoveredColor: _colors2.default.lightBlue,
+  dateCellHeight: 15,
+  dateCellWidth: 80,
+  offsetLeft: 30,
+  offsetTop: 60,
+  timeLabelMargin: 15,
   onChange: function onChange() {}
 };
+
+var _initialiseProps = function _initialiseProps() {
+  var _this3 = this;
+
+  this.startSelection = function (dayIndex, timeIndex) {
+    if (dayIndex < 0 || timeIndex < 0) {
+      return;
+    }
+
+    _this3.mouseDown = true;
+
+    _this3.addMode = !_this3.selected.has((0, _dateUtils.stringify)(dayIndex, timeIndex));
+
+    _this3.setState({ startCoord: [dayIndex, timeIndex] });
+  };
+
+  this.endSelection = function () {
+
+    for (var x = Math.min(_this3.state.startCoord[0], _this3.state.mouseX); x <= Math.max(_this3.state.startCoord[0], _this3.state.mouseX); x++) {
+      for (var y = Math.min(_this3.state.startCoord[1], _this3.state.mouseY); y <= Math.max(_this3.state.startCoord[1], _this3.state.mouseY); y++) {
+
+        if (_this3.addMode) {
+          _this3.selected.add((0, _dateUtils.stringify)(x, y));
+        } else {
+          _this3.selected.delete((0, _dateUtils.stringify)(x, y));
+        }
+      }
+    }
+
+    _this3.setState({ startCoord: [-1, -1] });
+    _this3.mouseDown = false;
+  };
+
+  this.coordToIndex = function (x, y) {
+
+    return [Math.floor(x / _this3.props.dateCellWidth), Math.floor(y / _this3.props.dateCellHeight)];
+  };
+
+  this.renderTimeLabels = function () {
+    var labels = [React.createElement(DateLabel, { key: -1 })]; // Ensures time labels start at correct location
+    for (var t = _this3.props.minTime; t <= _this3.props.maxTime; t += 1) {
+      labels.push(React.createElement(
+        TimeLabelCell,
+        { key: t, dateCellHeight: _this3.props.dateCellHeight },
+        React.createElement(
+          TimeText,
+          null,
+          formatHour(t)
+        )
+      ));
+    }
+    return React.createElement(
+      Column,
+      { style: { marginTop: _this3.props.timeLabelMargin } },
+      labels
+    );
+  };
+
+  this.renderDateColumn = function (dayIndex, dayOfTimes) {
+
+    return React.createElement(
+      Column,
+      {
+        key: dayOfTimes[0],
+        margin: _this3.props.margin,
+        dateCellWidth: _this3.props.dateCellWidth,
+        dateCellHeight: _this3.props.dateCellHeight
+      },
+      React.createElement(
+        GridCell,
+        { margin: _this3.props.margin, dateCellWidth: _this3.props.dateCellWidth, dateCellHeight: _this3.props.dateCellHeight },
+        React.createElement(
+          DateLabel,
+          null,
+          (0, _format2.default)(dayOfTimes[0], _this3.props.dateFormat)
+        ),
+        React.createElement(
+          DateLabel,
+          { dayOfWeek: true },
+          (0, _format2.default)(dayOfTimes[1], 'ddd')
+        )
+      ),
+      dayOfTimes.map(function (time, i) {
+        return _this3.renderDateCellWrapper(time, dayIndex, i);
+      })
+    );
+  };
+
+  this.shouldHighlight = function (s) {
+    var _unstringify = (0, _dateUtils.unstringify)(s),
+        x = _unstringify[0],
+        y = _unstringify[1];
+
+    var highlighted = _this3.mouseDown && (0, _dateUtils.between)(_this3.state.startCoord[0], _this3.state.mouseX, x) && (0, _dateUtils.between)(_this3.state.startCoord[1], _this3.state.mouseY, y);
+    var selected = _this3.selected.has(s);
+
+    return _this3.mouseDown && _this3.addMode && highlighted || !_this3.mouseDown && selected || selected && !highlighted;
+  };
+
+  this.renderDateCellWrapper = function (time, dayIndex, timeIndex) {
+
+    var stringified = (0, _dateUtils.stringify)(dayIndex, timeIndex);
+
+    return React.createElement(
+      GridCell,
+      {
+        className: 'rgdp__grid-cell',
+        role: 'presentation',
+        margin: 0,
+        key: time.toISOString()
+        // Mouse handlers
+        , onMouseDown: function onMouseDown() {
+          return _this3.startSelection(dayIndex, timeIndex);
+        }
+      },
+      React.createElement(DateCell, {
+        selected: _this3.shouldHighlight(stringified),
+        dateCellHeight: _this3.props.dateCellHeight,
+        quarter: time.getMinutes() / 15,
+        selectedColor: _this3.props.selectedColor,
+        unselectedColor: _this3.props.unselectedColor,
+        hoveredColor: _this3.props.hoveredColor
+      })
+    );
+  };
+};
+
 exports.default = ScheduleSelector;
