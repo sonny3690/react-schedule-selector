@@ -283,7 +283,7 @@ shouldHighlight = s => {
   const highlighted = (this.mouseDown && between(this.state.startCoord[0], this.state.mouseX, x) && between(this.state.startCoord[1], this.state.mouseY, y));
   const selected = this.selected.has(s)
   
-  return !this.mouseDown && selected || this.mouseDown && (this.addMode && (highlighted || selected)) || (!this.addMode && !highlighted && selected)
+  return (this.mouseDown && this.addMode && highlighted) || (!this.mouseDown && selected) || (selected && ! highlighted)
 }
 
 
