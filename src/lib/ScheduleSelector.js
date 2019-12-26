@@ -35,7 +35,6 @@ const Grid = styled.div`
   flex-direction: row;
   align-items: stretch;
   width: 100%;
-
 `
 
 const Column = styled.div`
@@ -55,13 +54,13 @@ const handleQuarterCellBorder = quarter => {
 
   switch (quarter) {
     case 0:
-      return "border-style: solid solid none solid";
+      return "border-style: solid solid none none";
     case 1:
-      return "border-style: none solid dotted solid";
+      return "border-style: none solid dashed solid";
     case 2:
-      return "border-style: dotted solid none solid";
+      return "border-style: none solid none none";
     case 3:
-      return "border-style: none solid solid solid";
+      return "border-style: none solid solid none";
   }
 }
 
@@ -71,7 +70,6 @@ const DateCell = styled.div`
   height: ${props => props.dateCellHeight + 'px'};
   width: ${props => props.dateCellWidth + 'px'};
   border-width: 0.2px;
-  border-style: solid;
   ${({ quarter }) => handleQuarterCellBorder(quarter)};
   margin: 0px 0px;
   background-color: ${props => (props.selected ? props.selectedColor : props.unselectedColor)};
@@ -91,12 +89,12 @@ const TimeLabelCell = styled.div`
   position: relative;
   display: block;
   width: 30px;
-  height: 20px;
+  height: ${({dateCellHeight}) => dateCellHeight * 4 + 'px'};
   text-align: center;
   display: flex;
   justify-content: center;
+  margin-right: 3px;
   align-items: center;
-  background: yellow;
 `
 
 const TimeText = styled(Text)`
@@ -153,8 +151,11 @@ cellToDate: Map < HTMLElement, Date >
   selectedColor: colors.blue,
   unselectedColor: colors.paleBlue,
   hoveredColor: colors.lightBlue,
-  dateCellHeight: 20,
-  dateCellWidth: 100,
+  dateCellHeight: 15,
+  dateCellWidth: 80,
+  offsetLeft: 30,
+  offsetTop: 60,
+  timeLabelMargin: 15,
   onChange: () => { }
 }
 
@@ -170,13 +171,10 @@ constructor(props: PropsType) {
   for (let d = 0; d < props.numDays; d += 1) {
     const currentDay = []
 
-    selected.push([])
-
     for (let h = props.minTime; h <= props.maxTime; h += 1) {
       for (let i = 0; i < 4; i++) {
-        let currentTime = addMinutes(addHours(addDays(startTime, d), h), i * 15);
+        let currentTime = addHours(addDays(startTime, d), h + 0.25 * i);
         currentDay.push(currentTime);
-        selected[d].push(false);
       }
     }
     this.dates.push(currentDay)
@@ -186,7 +184,6 @@ constructor(props: PropsType) {
     mouseX: 0,
     mouseY: 0,
     startCoord: [-1, -1],
-    endCoord: [-1, -1],
   }
 
 
@@ -247,12 +244,12 @@ renderTimeLabels = (): React.Element<*> => {
   const labels = [<DateLabel key={-1} />] // Ensures time labels start at correct location
   for (let t = this.props.minTime; t <= this.props.maxTime; t += 1) {
     labels.push(
-      <TimeLabelCell key={t}>
+      <TimeLabelCell key={t} dateCellHeight={this.props.dateCellHeight}>
         <TimeText>{formatHour(t)}</TimeText>
       </TimeLabelCell>
     )
   }
-  return <Column margin={this.props.margin}>{labels}</Column>
+  return <Column style={{marginTop: this.props.timeLabelMargin}}>{labels}</Column>
 }
 
 renderDateColumn = (dayIndex: number, dayOfTimes: Array<Date>) => {
@@ -303,9 +300,8 @@ renderDateCellWrapper = (time: Date, dayIndex, timeIndex): React.Element<*> => {
     >
       <DateCell
         selected={this.shouldHighlight(stringified)}
-        // innerRef={refSetter}
         dateCellHeight={this.props.dateCellHeight}
-        quarter={1}
+        quarter={time.getMinutes()/15}
         selectedColor={this.props.selectedColor}
         unselectedColor={this.props.unselectedColor}
         hoveredColor={this.props.hoveredColor}
@@ -318,8 +314,8 @@ _onMouseMove(e) {
 
   let coords = this.coordToIndex(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
 
-  const mouseX = e.nativeEvent.pageX - this.gridRef.offsetLeft - 30;
-  const mouseY = e.nativeEvent.pageY - this.gridRef.offsetTop - 60;
+  const mouseX = e.nativeEvent.pageX - this.gridRef.offsetLeft - this.props.offsetLeft;
+  const mouseY = e.nativeEvent.pageY - this.gridRef.offsetTop - this.props.offsetTop;
 
   const [cellColIndex, cellRowIndex] = [Math.floor(mouseX / this.props.dateCellWidth), Math.floor(mouseY / this.props.dateCellHeight)];
   this.setState({ mouseX: cellColIndex, mouseY: cellRowIndex});
@@ -339,9 +335,6 @@ render(): React.Element <*> {
     {this.renderTimeLabels()}
     {this.dates.map((e, i) => this.renderDateColumn(i, e))}
   </Grid >
-
-
-  <h1>{this.state.mouseX} {this.state.mouseY}</h1>
     </Wrapper >
     )
   }
